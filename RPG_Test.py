@@ -1,9 +1,22 @@
 #RPG_TEST
 #Dennis Gordick
+#Brandon McCurry
 #10/21/2014
+"""
+To open the save file copy and paste this into appropriate location:
+try:
+	f = shelve.open("save.dat")
+	attributes = f["attributes"]
+	f.close()
+	gold = attributes["gold"]
+	potions = attributes["potions"]
+except:
+	print("Save file is corrupt or doesn't exist")
+"""
 
 import random
 import time
+import pickle, shelve
 Name=input("What is your name?")
 Race=input("What is your race? (Your choices are Human, Elf, and Dwarf.)")
 Class=input("What is your class? (Your choices are Warrior, Archer, and Mage.")
@@ -16,7 +29,7 @@ elif Class=="Archer":
 else:
     Weapon="Staff"
     print("A "+Weapon+" is your weapon")
-print("The "+str(Weapon)+" weilding "+ str(Class)+" of the "+ str(Race)+" clan, whent out on an adventure. There name was "+str(Name))
+print("The "+str(Weapon)+" weilding "+ str(Class)+" of the "+ str(Race)+" clan, went out on an adventure. There name was "+str(Name))
 xp=0
 player_lvl=1
 extra_health=int(player_lvl)*10
@@ -35,7 +48,7 @@ while health > 0:
     player_dmg_min=1*int(player_lvl)
     player_dmg_max=6*int(player_lvl)
 
-    explore=input("Do you want to explore or shop? (only say explore or shop)")
+    explore=input("Do you want to explore, shop, or save? (only say explore, shop, or save)")
     turns=0
     if explore=="explore":
         lvl=input("What level monsters?")
@@ -175,3 +188,9 @@ while health > 0:
             print("Total potoins "+str(potions))
         else:
             print("'Your to poor! Come back with some gold fool!'\nThe shopkeeper kicks you out.")
+    elif explore=="save":
+	    f = shelve.open("save.dat")
+	    attributes = {"gold":gold, "potions":potions}
+	    f["attributes"] = attributes
+	    f.sync()
+	    f.close()
