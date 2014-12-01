@@ -6,214 +6,242 @@
 #file system fully works, if you don't understand how to use it ask Brandon
 """
 Task list:
-fix bug where you can sell potions you don't have
-allow player to leave battle
-make battles more difficult
+allow player to leave game
 create different types of monsters
-create a limit to the cave
-add bosses
 improve shop inventory
 gain skill points every level to improve yourself
+add multiple save files
 """
 import random
 import time
 import pickle, shelve
-response=input("New game or Load game? (Choose load or new)")
-while response != "load" and response != "new":
-	print(response + " is invalid input")
-	response=input("New game or Load game? (Choose load or new)")
-if response == "load":
-	try:
-		f = shelve.open("save.dat")
-		attributes = f["attributes"]
-		f.close()
-		Name = attributes["Name"]
-		Race = attributes["Race"]
-		Class = attributes["Class"]
-		Weapon = attributes["Weapon"]
-		xp = attributes["xp"]
-		player_lvl = attributes["player_lvl"]
-		gold = attributes["gold"]
-		potions = attributes["potions"]
-	except:
-		print("Save file is corrupt or doesn't exist")
-		response="new"
-if response=="new":
-	Name=input("What is your name?")
-	Race=input("What is your race? (Your choices are Human, Elf, and Dwarf.)")
-	Class=input("What is your class? (Your choices are Warrior, Archer, and Mage.")
-	if Class=="Warrior":
-	    Weapon="Sword"
-	    print("A "+Weapon+" is your weapon")
-	elif Class=="Archer":
-	    Weapon="Bow"
-	    print("A "+Weapon+" is your weapon")
-	else:
-	    Weapon="Staff"
-	    print("A "+Weapon+" is your weapon")
-	print("The "+str(Weapon)+" weilding "+ str(Class)+" of the "+ str(Race)+" clan, went out on an adventure. There name was "+str(Name))
-	xp=0
-	player_lvl=1
-	gold=0
-	potions=0
-extra_health=int(player_lvl)*10
-health=90+int(extra_health)	
-while health > 0:
-    extra_health=int(player_lvl)*10
-    health=90+int(extra_health)
-    LVL_XP=90+int(extra_health)
+from Enemies import Player, Monster, Shop_Keeper, Monster_Boss
 
-    if int(xp) >= int(LVL_XP):
-        player_lvl+= 1
-        print("Level Up! "+str(player_lvl))
+class main():
+    def __init__(self):
+        response=self.valid_input("New game or Load game?",["load","new"])
+        if response == "load":
+            try:
+                f = shelve.open("save.dat")
+                attribute = f["attributes"]
+                person = attribute[0]
+                f.close()
+                print("Success!")
+            except:
+                print("Save file is corrupt or doesn't exist")
+                response="new"
+        if response=="new":
+            Name=input("What is your name?")
+            Race=self.valid_input("What is your race? (Human, Elf, Dwarf) ", ["human","elf","dwarf"])
+            #Race=input("What is your race? (Your choices are Human, Elf, and Dwarf.)")
+            Class=self.valid_input("What is your class? (Warrior, Archer, Mage) ", ["warrior","archer","mage"])
+            #Class=input("What is your class? (Your choices are Warrior, Archer, and Mage.")
+            person = Player(Name, Race, Class)
+            
+        while person.health > 0:
+            person.update()
+            explore=self.valid_input("Do you want to explore, go to town, look at some info, or save? ", ["explore","town","save","info"])
+            #explore=input("Do you want to explore or go to town or look at some stats/info or even save? (only say explore or town or info or save)")
+            turns=1
+            if explore=="explore":
+                lvl=self.valid_int("What level monsters?")
+                print("You explore")
+                turns=1
+                while turns < 100 and int(person.health) > 0:
+                    encounter=random.randint(1,100)
 
-    player_dmg_min=1*int(player_lvl)
-    player_dmg_max=6*int(player_lvl)
+                    #normal fight
+                    if int(encounter) >=70:
+                        enemy = Monster(lvl,person)
+                        print("You encounterd a LVL: "+str(enemy.lvl)+" Monster!")
+                        self.fight(person, enemy)
+                        person.kills += 1
 
-    explore=input("Do you want to explore, shop, or save? (only say explore, shop, or save)")
-    turns=0
-    if explore=="explore":
-        lvl=input("What level monsters?")
-        mode=input("What dificulty? (easy, medium, hard)")
-        print("You explore")
-        turns=1
-        while turns < 101 and int(health) > 0:
-            monster_lvl= int(lvl)
-            monster_dmg= int(lvl)
-            monster_xp= int(lvl)/int(player_lvl)*2
-            monster_loot= int(monster_lvl)
-            encounter=random.randint(1,100)
+                    elif int(encounter)<70:
+                        loot = random.randint(1,100)
+                        trap = random.randint(1,100)
 
-            #normal fight
-            if int(encounter) >=70:
-                print("You encounterd a LVL: "+str(monster_lvl)+" Monster!")
-                monster_health=int(monster_lvl)*2
-                while int(monster_health) > 0 and health > 0:
-                    print("Your Health: "+str(health))
-                    print("Monsters Health: "+str(monster_health))
+                        if int(loot)>=60:
+                            person.gold=int(person.gold)+int(lvl)
+                            print("You found "+str(lvl)+" gold")
+                            print("You have a total of "+str(person.gold)+" gold")
+                            print()
+                        elif int(loot)<=10:
+                            if int(trap)>=50:
+                                person.health=int(person.health)-10
+                                print("You step on a trap")
+                                print("You lost ten health")
+                                print("Your total health is "+str(person.health))
+                                print()
+                                          
+                    if int(turns)== 100:
+                        #Boss fight
+                        boss=random.randint(1,10)
+                        if int(boss)>5:
+                            print("Boss Fight!")
+                            run=self.valid_input("Do you fight or run?", ["fight","run"])
+                            if run.lower() == "fight":
+                                satan = Monster_Boss(lvl,person)
+                                self.fight(person, satan)
+                                person.boss_kills += 1
+                                            
+                    turns+=1
+                    print("End of turn "+ str(turns)+"\n")
+                    time.sleep(1.0)
 
-                    #Actual combat
-                    attack=input("Do you attack or use a potion? (attack or potion)")
-                    if attack == "attack":
-                          hit=random.randint(1,100)
-                          if int(hit)<=75:
-                              dmg=random.randint(int(player_dmg_min),int(player_dmg_max))
-                              monster_health=int(monster_health)-int(dmg)
-                              print("\nYou did "+ str(dmg)+" damage")
-                          else:
-                                print("You missed!")
-                    elif attack=="potion":
-                        if potions >0:
-                            health=90+int(extra_health)
-                            print("Potions left... "+str(potions))
+            elif explore=="info":
+                 print("Level",str(person.lvl))
+                 print("Total kills",str(person.kills))
+                 print("Total boss kills",str(person.boss_kills))
+                 print("Total gold",str(person.gold))
+                 print("Total potions",str(person.potions))
+                 print("Total xp", str(person.xp))
+
+            elif explore=="save":
+                f = shelve.open("save.dat")
+                attributes = [person]
+                f["attributes"] = attributes
+                f.sync()
+                f.close()
+                print("\nSaved!\n")
+
+            #Going to town (giggity)
+            while explore=="town":
+                town=self.valid_input("Where do you want to go? (shop, inspector, blacksmith, tavern, leave)", ["shop","inspector","blacksmith","tavern","leave"])
+
+                if town=="shop":
+                    print("Your gold "+str(person.gold))
+                    print("The shopkeep says 'We only have potions of health! They are 20 gold each!'")
+                    bought=input("How many do you want?")
+                    if bought.isdigit():
+                        cost=int(bought)*20
+                        if int(person.gold)>=int(cost):
+                            person.potions+=int(bought)
+                            person.gold-=int(cost)
+                            print("Gold left "+str(person.gold))
+                            print("Total potions "+str(person.potions))
                         else:
-                            print("You have no potions... You just waisted your turn!")
-                    else:
-                          print("You sit there and take it")
+                            print("'Your to poor! Come back with some gold fool!'\nThe shopkeeper kicks you out.")
+                    elif bought.strip("-").isdigit():
+                        print("Aye. Trying to pull a fast one on me are ya?")
+                        keep = Shop_Keeper(person, bought)
+                        self.fight(person, keep)
+                        if person.health > 0:
+                            person.potions += int(bought)*-1
+                elif town=="inspector":
+                    print("Coming soon")
+
+                elif town=="blacksmith":
+                    print("Coming soon")
+
+                elif town=="leave":
+                    explore = "leave"
+
+                while town=="tavern":
+                    print("Hello traveler, what can I do for you? A drink? Or the latest rumore?")
+                    bar_keep=self.valid_input("Whats your choice? (drink, rumore, or leave)", ["drink","rumore","leave"])
+
+                    if bar_keep=="drink":
+                        print("Drinks cost one gold.")
+                        drink=self.valid_input("Do you want a drink? ",["yes","no"])
+
+                        while drink=="yes" and person.gold > 0:
+                            person.gold=int(person.gold)-1
+                            print("Your gold: "+str(person.gold))
+                            print("You get drunk out of your mind.")
+                            drink = input("Another? ")
+                            
+                    if bar_keep=="rumore":
+                        if int(person.lvl) < 20:
+                            print("I don't know anything.")
+                        else:
+                            print("No, rumors at the moment.")
+
+                    if bar_keep=="leave":
+                        print("Goodbye")
+                        town = ""
+
+    def fight(self, person, enemy):
+        while int(enemy.health) > 0 and person.health > 0:
+            print("Your Health: "+str(person.health))
+            print(enemy.name + " Health: "+str(enemy.health))
+            attack=input("Do you attack or use a potion? ")
+            #your turn
+            if attack == "attack":
+                hit=random.randint(1,100)
+                if int(hit)<=75:
+                    dmg=person.dmg()
+                    enemy.health-=int(dmg)
+                    print("\nYou did "+ str(dmg)+" damage")
+                else:
+                    print("You missed!")
+            elif attack=="potion":
+                if person.potions > 0:
+                    person.health=90+int(person.extra_health)
+                    print("Potions left... "+str(person.potions))
+                else:
+                    print("You have no potions... You just waisted your turn!")
+            else:
+                print("You sit there and take it")
+
+            #enemies turn
+            if int(enemy.health) > 0:
+                if enemy.potions > 0 and enemy.health < person.dmg_min:
+                    enemy.health += enemy.max_health//4
+                    enemy.potions -= 1
+                    print("The " + str(enemy.name) + " drank a potion")
+                else:
                     monster_hit_chance=random.randint(1,100)
                     if int(monster_hit_chance)<=60:
-                        health=int(health)-int(monster_dmg)
-                        print("The monster did "+ str(monster_dmg)+" damage")
-                    else:
-                        print("The monster missed!")
-
-                    #loot and xp for normal monster
-                    if int(monster_health) <= 0:
-                          xp= int(xp)+int(monster_xp)
-                          print("\nThe monster died\n")
-                          print("XP gained: "+ str(monster_xp))
-                          print("Your XP: "+ str(xp))
-                          loot_chance=random.randint(1,100)
-                          if int(loot_chance) <10:
-                              print("No loot :(")
-                              print("Your gold "+str(gold))
-                          elif int(loot_chance) <90:
-                              print("Your gold sir. It this many..." +str(monster_loot))
-                              gold=int(gold)+int(monster_loot)
-                              print("Your gold "+str(gold))
-                          else:
-                              print("Rare loot! 1 potoin!")
-                              potions+=1
-                              print("\nYour total potions "+str(potions))
-                    elif int(health) <= 0:
-                          print("You died")
-                          
-            if int(turns)== 100:
-
-                 #Boss fight
-                 boss=random.randint(1,10)
-                 if int(boss)>5:
-                     print("Boss Fight!")
-                     boss_health=int(health)
-                     boss_xp=int(monster_xp)*3
-                     boss_dmg=int(lvl)*3
-                     boss_loot=int(lvl)*100
-                     run=input("Do you fight or run?")
-                     while int(boss)>0 and int(health) > 0 and run=="fight":
-                         attack=input("Do you attack or use a potion? (attack or potion)")
-                         if attack == "attack":
-                                hit=random.randint(1,100)
-                                if int(hit)<=75:
-                                    dmg=random.randint(int(player_dmg_min),int(player_dmg_max))
-                                    boss_health=int(boss_health)-int(dmg)
-                                    print("\nYou did "+ str(dmg)+" damage")
-                                else:
-                                    print("You missed!")
-                         elif attack=="potion":
-                            if potions >0:
-                                health=90+int(extra_health)
-                                print("Potions left... "+str(potions))
-                            else:
-                                print("You have no potions... You just waisted your turn!")
-                         else:
-                            print("You sit there and take it")
-                         boss_hit_chance=random.randint(1,100)
-                         if int(boss_hit_chance)<=60:
-                            health=int(health)-int(boss_dmg)
-                            print("The boss did "+ str(boss_dmg)+" damage")
-                         else:
-                            print("The boss missed!")
-
-                         if int(boss_health) <= 0:
-                            xp= int(xp)+int(boss_xp)
-                            print("\nThe boss died\n")
-                            print("XP gained: "+ str(boss_xp))
-                            print("Your XP: "+ str(xp))
-                            loot_chance=random.randint(1,100)
-                            if int(loot_chance) <10:
-                                print("No loot :(")
-                                print("Your gold "+str(gold))
-                            elif int(loot_chance) <90:
-                                print("Your gold sir. It this many..." +str(boss_loot))
-                                gold=int(gold)+int(boss_loot)
-                                print("Your gold "+str(gold))
-                            else:
-                                print("Rare loot! 10 potoin!")
-                                potions+=10
-                                print("\nYour total potions "+str(potions))
-                         elif int(health) <= 0:
+                        person.health=int(person.health)-int(enemy.dmg)
+                        print("The " + str(enemy.name) + " did "+ str(enemy.dmg)+" damage")
+                        if person.health <= 0:
                             print("You died")
-                            
-            turns+=1
-            print("End of turn "+ str(turns)+"\n")
-            time.sleep(1.0)
+                    else:
+                        print("The " + str(enemy.name) + " missed!")
+
+            #loot and xp for normal monster
+            else:
+                person.xp+=int(enemy.xp)
+                print("\nThe " + str(enemy.name) + " died\n")
+                print("XP gained: "+ str(enemy.xp))
+                print("Your XP: "+ str(person.xp))
+                loot_chance=random.randint(1,100)
+                if int(loot_chance) <10:
+                    print("No loot :(")
+                    print("Your gold "+str(person.gold))
+                elif int(loot_chance) <90:
+                    print("Your gold sir. It this many..." +str(enemy.gold))
+                    if enemy.loot != "":
+                        print("There was also a " + str(enemy.loot) + " on him.")
+                        line = "Would you like to replace it with your " + str(person.weapon) + "? "
+                        opt = self.valid_input(line, ["yes","no"])
+                        if opt.lower() == "yes":
+                            person.weapon = enemy.loot
+                            print("Congradulations! Your new weapon is a " + str(person.weapon))
+                    person.gold+=int(enemy.gold)
+                    print("Your gold "+str(person.gold))
+                else:
+                    print("Rare loot! 1 potion!")
+                    person.potions+=1
+                    print("\nYour total potions "+str(person.potions))
+
+    def valid_input(self, question, valid):
+        response = input(question)
+        while response.lower() not in valid:
+            print("Valid responses: ")
+            for i in valid:
+                print(i)
+            response = input(question)
+        return response
+
+    def valid_int(self, question):
+        response = input(question)
+        while not response.isdigit():
+            print("That is not a number")
+            response = input(question)
+        return int(response)
             
-    elif explore=="shop":
-        print("Your gold "+str(gold))
-        print("The shopkeep says 'We only have potions of health! They are 20 gold each!'")
-        shop=input("How many do you want?")
-        cost=int(shop)*20
-        if int(gold)>=int(cost):
-            potions=int(potions)+int(shop)
-            gold=int(gold)-int(cost)
-            print("Gold left "+str(gold))
-            print("Total potoins "+str(potions))
-        else:
-            print("'Your to poor! Come back with some gold fool!'\nThe shopkeeper kicks you out.")
-    elif explore=="save":
-	    #do you want extra_health or health saved?
-	    f = shelve.open("save.dat")
-	    attributes = {"Name":Name,"Race":Race,"Class":Class,"Weapon":Weapon,"xp":xp,"player_lvl":player_lvl,"gold":gold, "potions":potions}
-	    f["attributes"] = attributes
-	    f.sync()
-	    f.close()
+
+main()
+
